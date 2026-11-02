@@ -32,7 +32,10 @@ jobs:
           chmod -R a+rwX .
           mkdir -p ~/.local/share/godot/export_templates ~/.config/godot
           cp -r /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore /root/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          if [ ! -f /root/debug.keystore ]; then
+            keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore /root/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          fi
+          ls -la /root/debug.keystore
           godot -v -e --quit --headless || true
           {
             echo '[gd_resource type="EditorSettings" format=3]'
@@ -51,10 +54,4 @@ jobs:
       - name: Exportar APK
         run: |
           mkdir -p build/android
-          godot --headless --export-debug "Android" build/android/KingdomsOfMagic.apk
-          ls -la build/android
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: KingdomsOfMagic-android
-          path: build/android/KingdomsOfMagic.apk
+          godot --headless --export-debug "Android"
