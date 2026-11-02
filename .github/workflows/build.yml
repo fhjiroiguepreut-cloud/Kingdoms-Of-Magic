@@ -14,11 +14,17 @@ jobs:
 
       - name: Descomprimir si hace falta
         run: |
+          ls -la
           if [ ! -f project.godot ]; then
-            unzip -q KingdomsOfMagic*.zip
-            cp -r KingdomsOfMagic/. .
+            mkdir -p /tmp/proj
+            for z in *.zip; do unzip -oq "$z" -d /tmp/proj; done
+            P=$(find /tmp/proj -name project.godot -not -path '*/__MACOSX/*' | head -n 1)
+            echo "project.godot encontrado en: $P"
+            test -n "$P"
+            cp -r "$(dirname "$P")"/. .
           fi
           test -f project.godot
+          ls -la
 
       - name: Crear presets
         run: |
