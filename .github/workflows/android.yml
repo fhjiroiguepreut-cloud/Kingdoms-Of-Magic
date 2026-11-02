@@ -12,10 +12,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verificar que project.godot está en la raíz
+        run: ls -la && test -f project.godot
+
+      - name: Permisos
+        run: chmod -R a+rwX .
+
       - name: Preparar plantillas de exportación
         run: |
           mkdir -p ~/.local/share/godot/export_templates
           cp -r /root/.local/share/godot/export_templates/4.3.stable ~/.local/share/godot/export_templates/4.3.stable
+
+      - name: Crear export_presets.cfg
+        run: |
+          cat > export_presets.cfg <<'EOF'
+          [preset.0]
+          name="Windows Desktop"
+          platform="Windows Desktop"
+          runnable=true
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/windows/KingdomsOfMagic.exe"
+
+          [preset.0.options]
+          binary_format/embed_pck=true
+          binary_format/architecture="x86_64"
+          texture_format/s3tc_bptc=true
+          texture_format/etc2_astc=false
+
+          [preset.1]
+          name="Linux"
+          platform="Linux"
+          runnable=true
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/linux/KingdomsOfMagic.x86_64"
+
+          [preset.1.options]
+          binary_format/embed_pck=true
+          binary_format/architecture="x86_64"
+          texture_format/s3tc_bptc=true
+          texture_format/etc2_astc=false
+          EOF
+          sed -i 's/^          //' export_presets.cfg
+          cat export_presets.cfg
 
       - name: Importar proyecto
         run: godot --headless --import || true
