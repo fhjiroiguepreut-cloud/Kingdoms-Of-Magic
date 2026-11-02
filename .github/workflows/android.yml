@@ -1,107 +1,40 @@
-name: Compilar Kingdoms of Magic APK
-
+name: Build Kingdoms Of Magic
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-android:
-    name: Construir APK Android
+  export:
     runs-on: ubuntu-latest
-
     container:
       image: barichello/godot-ci:4.3
-
     steps:
-      # 1. Descargar el repositorio
-      - name: Descargar proyecto
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2. Encontrar automáticamente project.godot
-      - name: Buscar proyecto Godot
-        shell: bash
+      - name: Preparar plantillas de exportación
         run: |
-          PROJECT_FILE=$(find . \
-            -type f \
-            -name "project.godot" \
-            -not -path "./.git/*" \
-            -print -quit)
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "ERROR: No se encontró project.godot"
-            echo "Archivos disponibles:"
-            find . -maxdepth 4 -type f | head -100
-            exit 1
-          fi
+      - name: Importar proyecto
+        run: godot --headless --import || true
 
-          PROJECT_DIR=$(dirname "$PROJECT_FILE")
-
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-          echo "Proyecto encontrado: $PROJECT_DIR"
-
-      # 3. Comprobar configuración Android
-      - name: Comprobar configuración
-        shell: bash
+      - name: Exportar Windows
         run: |
-          echo "Comprobando archivos..."
+          mkdir -p build/windows
+          godot --headless --export-release "Windows Desktop" build/windows/KingdomsOfMagic.exe
 
-          test -f "$PROJECT_DIR/project.godot"
-
-          if [ ! -f "$PROJECT_DIR/export_presets.cfg" ]; then
-            echo "ERROR: Falta export_presets.cfg"
-            echo "Debes crear un preset Android en Godot."
-            exit 1
-          fi
-
-          if ! grep -q 'name="Android"' "$PROJECT_DIR/export_presets.cfg"; then
-            echo "ERROR: El preset debe llamarse Android"
-            exit 1
-          fi
-
-          echo "Configuración encontrada."
-
-      # 4. Comprobar Godot
-      - name: Comprobar Godot
+      - name: Exportar Linux
         run: |
-          godot --version
+          mkdir -p build/linux
+          godot --headless --export-release "Linux" build/linux/KingdomsOfMagic.x86_64
 
-      # 5. Importar recursos
-      - name: Importar recursos
-        run: |
-          godot --headless \
-            --path "$PROJECT_DIR" \
-            --editor \
-            --quit
-
-      # 6. Crear APK
-      - name: Compilar APK
-        run: |
-          mkdir -p "$PROJECT_DIR/build"
-
-          godot --headless \
-            --path "$PROJECT_DIR" \
-            --export-debug "Android" \
-            "$PROJECT_DIR/build/KingdomsOfMagic.apk"
-
-      # 7. Comprobar APK
-      - name: Verificar APK
-        run: |
-          if [ ! -s "$PROJECT_DIR/build/KingdomsOfMagic.apk" ]; then
-            echo "ERROR: No se generó el APK."
-            exit 1
-          fi
-
-          echo "APK generado correctamente."
-          ls -lh "$PROJECT_DIR/build/KingdomsOfMagic.apk"
-
-      # 8. Guardar APK para descargarlo
-      - name: Publicar APK como artefacto
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Kingdoms-of-Magic-Android
-          path: ${{ env.PROJECT_DIR }}/build/KingdomsOfMagic.apk
-          if-no-files-found: error
-          retention-days: 7
+          name: KingdomsOfMagic-windows
+          path: build/windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KingdomsOfMagic-linux
+          path: build/linux
